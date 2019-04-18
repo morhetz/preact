@@ -6,10 +6,8 @@ import { getData, getChildren, getInstance, hasDataChanged, isRoot } from './cus
  * @class Renderer
  */
 export class Renderer {
-	constructor(hook, rid) {
+	constructor(hook) {
 
-		/** @type {string} */
-		this.rid = rid;
 		this.hook = hook;
 
 		/** @type {Array<import('../internal').DevtoolsEvent>} */
@@ -63,7 +61,6 @@ export class Renderer {
 		let work = [{
 			internalInstance: vnode,
 			data,
-			renderer: this.rid,
 			type: 'mount'
 		}];
 
@@ -82,7 +79,6 @@ export class Renderer {
 				work.push({
 					internalInstance: item,
 					data,
-					renderer: this.rid,
 					type: 'mount'
 				});
 			}
@@ -97,7 +93,6 @@ export class Renderer {
 			this.pending.push({
 				internalInstance: vnode,
 				data,
-				renderer: this.rid,
 				type: 'root'
 			});
 		}
@@ -140,7 +135,6 @@ export class Renderer {
 				// vnode/fiber shape.
 				internalInstance: prev,
 				data,
-				renderer: this.rid,
 				type: 'updateProfileTimes'
 			});
 			return;
@@ -154,7 +148,6 @@ export class Renderer {
 			// vnode/fiber shape.
 			internalInstance: prev,
 			data,
-			renderer: this.rid,
 			type: 'update'
 		});
 	}
@@ -194,7 +187,6 @@ export class Renderer {
 
 		this.pending.push({
 			internalInstance: root,
-			renderer: this.rid,
 			data: getData(root),
 			type: 'rootCommitted'
 		});
@@ -219,7 +211,6 @@ export class Renderer {
 
 		this.pending.push({
 			internalInstance: vnode,
-			renderer: this.rid,
 			type: 'unmount'
 		});
 	}
