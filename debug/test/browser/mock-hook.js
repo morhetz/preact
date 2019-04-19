@@ -37,7 +37,5 @@ export function convertEmit(args) {
 	if (args[0]!='operations') {
 		throw new Error('Event type must be "operations"');
 	}
-	console.log(args[1].length);
-	console.log(Array.from(args[1]), Array.prototype.slice.call(args[1]));
 	return Array.from(args[1]);
 }
