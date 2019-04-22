@@ -1,5 +1,5 @@
 import { checkPropTypes } from './check-props';
-import { getDisplayName } from './devtools/custom';
+import { getDisplayName } from './devtools/vnode';
 import { options } from 'preact';
 import { ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE } from './constants';
 
