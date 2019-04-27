@@ -127,4 +127,4 @@ installLogger(
 function App3() {
 	return <h1>Hello World</h1>;
 }
-render(<App3 />, document.body);
+render(<App />, document.body);
