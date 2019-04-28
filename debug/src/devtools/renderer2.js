@@ -85,7 +85,6 @@ export function resetChildren(state, vnode) {
 
 	/** @type {number[]} */
 	let next = [];
-	// console.log("--> reset", getDisplayName(vnode))
 
 	let stack = getChildren(vnode);
 	let child;
