@@ -99,9 +99,11 @@ export function resetChildren(state, vnode) {
 
 	if (next.length < 2) return;
 
+	let ancestor = getAncestorComponentVNode(getVNode(next[0]));
+
 	state.pending.push(
 		TREE_OPERATION_REORDER_CHILDREN,
-		getVNodeId(vnode),
+		getVNodeId(ancestor),
 		next.length
 	);
 
@@ -148,12 +150,15 @@ export function mount(state, vnode, isRoot, parentId) {
 	let id;
 	let ancestor = getAncestorComponentVNode(vnode);
 	let owner = ancestor!=null ? getVNodeId(ancestor) : 0;
+	if (!shouldFilter(vnode)) {
+	}
 
 	if (isRoot || !shouldFilter(vnode)) {
 		id = getVNodeId(vnode);
+		console.log("mount", getDisplayName(vnode), id, "owner", owner)
 
 		// FIXME: Add proper root detection
-		if (isRoot && id < 30) {
+		if (isRoot && id < 10) {
 			state.pending.push(
 				TREE_OPERATION_ADD,
 				id,
