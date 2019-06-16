@@ -1,7 +1,7 @@
 import { Fragment } from 'preact';
 import { getVNodeId, getVNode, clearVNode, hasVNodeId } from './cache';
 import { TREE_OPERATION_ADD, ElementTypeRoot, TREE_OPERATION_REMOVE, TREE_OPERATION_REORDER_CHILDREN } from './constants';
-import { getChildren, getVNodeType, getDisplayName, getAncestorComponentVNode } from './vnode';
+import { getChildren, getVNodeType, getDisplayName } from './vnode';
 import { cleanForBridge } from './pretty';
 import { inspectHooks } from './hooks';
 import { encode } from './util';
@@ -19,7 +19,7 @@ export function onCommitFiberRoot(hook, state, vnode) {
 
 	// TODO: Profiling
 	let parentId = 0;
-	let ancestor = getAncestorComponentVNode(vnode);
+	let ancestor = vnode._parent;
 	if (ancestor!=null && hasVNodeId(ancestor)) {
 		parentId = getVNodeId(ancestor);
 	}
@@ -99,7 +99,7 @@ export function resetChildren(state, vnode) {
 
 	if (next.length < 2) return;
 
-	let ancestor = getAncestorComponentVNode(getVNode(next[0]));
+	let ancestor = getVNode(next[0])._parent;
 
 	state.pending.push(
 		TREE_OPERATION_REORDER_CHILDREN,
@@ -148,7 +148,7 @@ export function unmount(state, vnode, isRoot) {
  */
 export function mount(state, vnode, isRoot, parentId) {
 	let id;
-	let ancestor = getAncestorComponentVNode(vnode);
+	let ancestor = vnode._parent;
 	let owner = ancestor!=null ? getVNodeId(ancestor) : 0;
 	if (!shouldFilter(vnode)) {
 	}
