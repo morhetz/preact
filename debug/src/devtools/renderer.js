@@ -1,4 +1,4 @@
-import { getData, getChildren, getInstance, hasDataChanged, isRoot } from './custom';
+import { getData, getInstance, hasDataChanged, isRoot } from './custom';
 
 /**
  * Custom renderer tailored for Preact. It converts updated vnode trees
@@ -69,8 +69,9 @@ export class Renderer {
 			let stack = data.children.slice();
 			let item;
 			while ((item = stack.pop())!=null) {
-				let children = getChildren(item);
-				stack.push(...children);
+				if (item._children) {
+					stack.push(...item._children);
+				}
 
 				this.inst2vnode.set(getInstance(item), item);
 

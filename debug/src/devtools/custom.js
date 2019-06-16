@@ -1,6 +1,6 @@
 import { Component, Fragment } from 'preact';
 import { setIn } from './util';
-import { getDisplayName, getChildren } from './vnode';
+import { getDisplayName } from './vnode';
 
 /**
  * Get the type/category of a vnode
@@ -48,7 +48,7 @@ export function getData(vnode) {
 		};
 	}
 
-	let children = getChildren(vnode);
+	let children = vnode._children || [];
 
 	let duration = vnode.endTime - vnode.startTime;
 	return {
