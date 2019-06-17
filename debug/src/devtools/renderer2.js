@@ -15,7 +15,6 @@ import { isRoot } from './custom';
  * @param {import('../internal').VNode} vnode
  */
 export function onCommitFiberRoot(hook, state, vnode) {
-	console.log("commitRoot")
 	// Empty root
 	// if (root.type===Fragment && root._children.length==0) return;
 
@@ -44,7 +43,6 @@ export function onCommitFiberRoot(hook, state, vnode) {
  * @param {import('../internal').VNode} vnode
  */
 export function onCommitFiberUnmount(hook, state, vnode) {
-	console.log("commitUnmount")
 	// Check if is root
 	recordUnmount(state, vnode);
 }
@@ -89,18 +87,20 @@ export function update(state, vnode, parent) {
  * @param {import('../internal').VNode} vnode
  */
 export function resetChildren(state, vnode) {
+	// TODO: Infinite loop here
+	return;
 
 	/** @type {number[]} */
 	let next = [];
 
-	let stack = vnode._children || [];
+	let stack = vnode._children.slice() || [];
 	let child;
 	while ((child = stack.pop())!=null) {
 		if (!shouldFilter(state.filter, child)) {
 			next.push(getVNodeId(child));
 		}
 		else if (vnode._children) {
-			stack.push(...vnode._children);
+			stack.push(...vnode._children.slice());
 		}
 	}
 
@@ -137,8 +137,6 @@ export function unmount(state, vnode) {
 		state.pendingUnmountIds.push(id);
 	}
 	// }
-
-	console.log("unmount", getDisplayName(vnode), getVNodeId(vnode))
 
 	// Root must be last after all children are unmounted
 	// let isRoot = vnode._parent==null;

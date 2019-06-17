@@ -31,7 +31,6 @@ export function getVNodeId(vnode) {
 	let inst = getInstance(vnode);
 	if (!vnodeToId.has(inst)) {
 		vnodeToId.set(inst, genUuid());
-		console.log(getDisplayName(vnode), vnodeToId.get(inst))
 	}
 
 	let id = vnodeToId.get(inst);

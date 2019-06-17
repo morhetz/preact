@@ -5,6 +5,7 @@ import { diffChildren, toChildArray } from './children';
 import { diffProps } from './props';
 import { assign, removeNode } from '../util';
 import options from '../options';
+import { getDisplayName } from '../../debug/src/devtools/vnode';
 
 /**
  * Diff two virtual nodes and apply proper changes to the DOM

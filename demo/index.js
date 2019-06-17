@@ -160,11 +160,27 @@ installLogger(
 //   );
 // }
 
+
 function Foo() {
 	return 'foo';
 }
 
-function App() {
-	return <h1><Foo /></h1>;
+function Baz() {
+	return <div>baz</div>;
 }
-render(<AppF />, document.body);
+
+function Bar() {
+	return <Baz />;
+}
+
+function App() {
+	let [v, setter] = useState(true);
+	let update = () => setter(!v);
+	return (
+		<div>
+			<button onClick={update}>toggle</button>
+			{v ? <Foo /> : <Bar />}
+		</div>
+	);
+}
+render(<App />, document.body);

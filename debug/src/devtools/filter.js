@@ -79,7 +79,6 @@ export function shouldFilter(filterState, vnode) {
 		case null:
 			return true;
 		case Fragment:
-			console.log("filer", vnode._parent)
 			return !isRoot(vnode);
 	}
 

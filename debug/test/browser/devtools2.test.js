@@ -217,15 +217,19 @@ describe('devtools', () => {
 	});
 
 	// Works when singled out, options environment is not cleaned up properly
-	it.skip('should replace component', () => {
+	it('should replace component', () => {
 		mock.connect();
 
 		function Foo() {
 			return 'foo';
 		}
 
+		function Baz() {
+			return <div>baz</div>;
+		}
+
 		function Bar() {
-			return <div>bar</div>;
+			return <Baz />;
 		}
 
 		let update;
@@ -242,68 +246,73 @@ describe('devtools', () => {
 		render(<App />, scratch);
 
 		expect(mock.hook.emit).to.be.calledOnce;
-		expect(convertEmit(mock.hook.emit.args[0])).to.deep.equal([
-			1,
-			1,
-			8,
-			3,
-			65,
-			112,
-			112,
-			3,
-			70,
-			111,
-			111,
-			2,
-			0,
-			1,
-			1,
-			10,
-			1,
-			0, // TODO: owner
-			1,
-			2,
-			4,
-			1,
-			0,
-			1,
-			0,
-			1,
-			3,
-			4,
-			2,
-			2,
-			2,
-			0
+		expect(Array.from(mock.hook.emit.args[0][1])).to.deep.equal([
+			1, // rendererId
+			1, // root vnode id
+			8, // string table length
+			3, // next string length
+			65, // A
+			112, // p
+			112, // p
+			3, // next string length
+			70, // F
+			111, // o
+			111, // o
+			1, // TREE_OPERATION_ADD
+			1, // vnode id
+			11, // ElementTypeRoot -> Fragment
+			1, // isProfilingSupported
+			1, // hasOwnerMetaData
+			1, // TREE_OPERATION_ADD -> App
+			2, //   vnode id
+			5, //   ElementTypeFunction
+			1, //   parent id
+			0, //   owner id
+			1, //   displayName string id
+			0, //   key string id
+			1, // TREE_OPERATION_ADD -> Foo
+			3, //   vnode id
+			5, //   ElementTypeFunction
+			2, //   parent id
+			2, //   owner id
+			2, //   displayName string id
+			0  //   key string id
 		]);
-
-		console.log();
-		console.log();
-		console.log();
 
 		// unmount
 		update();
 		rerender();
 
 		expect(mock.hook.emit).to.be.calledTwice;
-		expect(convertEmit(mock.hook.emit.args[1])).to.deep.equal([
-			1,
-			1,
-			4,
-			3,
-			66,
-			97,
-			114,
-			2,
-			1,
-			3,
-			1,
-			4,
-			4,
-			2,
-			2,
-			1,
-			0 // TODO: Owner
+		expect(Array.from(mock.hook.emit.args[1][1])).to.deep.equal([
+			1, // rendererId
+			1, // root vnode id
+			8, // string table length
+			3, // next string length
+			66, // B
+			97, // a
+			114, // r
+			3, // next string length
+			66, // B
+			97, // a
+			122, // z
+			2, // TREE_OPERATION_REMOVE -> Foo
+			1, //   number of vnodes to unmount
+			3, //   vnode id
+			1, // TREE_OPERATION_ADD -> Bar
+			4, //   vnode id
+			5, //   ElementTypeFunction
+			2, //   parent id
+			2, //   owner id
+			1, //   displayName string id
+			0, //   key string id
+			1, // TREE_OPERATION_ADD -> Baz
+			5, //   vnode id
+			5, //   ElementTypeFunction
+			4, //   parent id
+			4, //   owner id
+			2, //   displayName string id
+			0  //   key string id
 		]);
 
 		// Update again
@@ -311,24 +320,25 @@ describe('devtools', () => {
 		rerender();
 
 		expect(mock.hook.emit).to.be.called.calledThrice;
-		expect(convertEmit(mock.hook.emit.args[2])).to.deep.equal([
-			1,
-			1,
-			4,
-			3,
-			70,
-			111,
-			111,
-			2,
-			1,
-			4,
-			1,
-			5,
-			4,
-			2,
-			2,
-			1,
-			0
+		expect(Array.from(mock.hook.emit.args[2][1])).to.deep.equal([
+			1, // rendererId
+			1, // root vnode id
+			4, // string table length
+			3, // next string length
+			70, // F
+			111, // o
+			111, // o
+			2, // TREE_OPERATION_REMOVE -> Bar -> Baz
+			2, //   number of vnodes to unmount
+			5, //   vnode id
+			4, //   vnode id
+			1, // TREE_OPERATION_ADD -> Foo
+			6, //   vnode id
+			5, //   ElementTypeFunction
+			2, //   parent id
+			2, //   owner id
+			1, //   displayName string id
+			0  //   key string id
 		]);
 	});
 
