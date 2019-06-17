@@ -6,6 +6,7 @@ import { inspectHooks } from './hooks';
 import { encode } from './util';
 import { getStringId, stringTable, allStrLengths, clearStringTable } from './string-table';
 import { shouldFilter } from './filter';
+import { isRoot } from './custom';
 
 /**
  * Called when a tree has completed rendering
@@ -14,6 +15,7 @@ import { shouldFilter } from './filter';
  * @param {import('../internal').VNode} vnode
  */
 export function onCommitFiberRoot(hook, state, vnode) {
+	console.log("commitRoot")
 	// Empty root
 	// if (root.type===Fragment && root._children.length==0) return;
 
@@ -25,10 +27,10 @@ export function onCommitFiberRoot(hook, state, vnode) {
 	}
 
 	if (hasVNodeId(vnode)) {
-		update(state, vnode, false, parentId);
+		update(state, vnode, ancestor);
 	}
 	else {
-		mount(state, vnode, true, parentId);
+		mount(state, vnode, null);
 	}
 
 	flushPendingEvents(hook, state);
@@ -42,28 +44,28 @@ export function onCommitFiberRoot(hook, state, vnode) {
  * @param {import('../internal').VNode} vnode
  */
 export function onCommitFiberUnmount(hook, state, vnode) {
+	console.log("commitUnmount")
 	// Check if is root
-	unmount(state, vnode, false);
+	recordUnmount(state, vnode);
 }
 
 /**
  * @param {import('../internal').AdapterState} state
  * @param {import('../internal').VNode} vnode
- * @param {boolean} isRoot
- * @param {number} parentId
+ * @param {import('../internal').VNode} vnode
  * @returns {boolean}
  */
-export function update(state, vnode, isRoot, parentId) {
+export function update(state, vnode, parent) {
 	let shouldReset = false;
 	let include = !shouldFilter(state.filter, vnode);
 	if (include && !hasVNodeId(vnode)) {
-		mount(state, vnode, isRoot, parentId);
+		mount(state, vnode, parent);
 		shouldReset = true;
 	}
 	else {
 		let children = vnode._children || [];
 		for (let i = 0; i < children.length; i++) {
-			if (children[i]!==null && update(state, children[i], false, shouldFilter(state.filter, vnode) ? parentId : getVNodeId(vnode))) {
+			if (children[i]!==null && update(state, children[i], shouldFilter(state.filter, vnode) ? parent : vnode)) {
 				shouldReset = true;
 			}
 		}
@@ -118,77 +120,95 @@ export function resetChildren(state, vnode) {
 /**
  * @param {import('../internal').AdapterState} state
  * @param {import('../internal').VNode} vnode
- * @param {boolean} isRoot Mark a root as they need to be mounted differently
  */
-export function unmount(state, vnode, isRoot) {
+export function unmount(state, vnode) {
+	let children = vnode._children || [];
+	for (let i = 0; i < children.length; i++) {
+		if (children[i]!==null) {
+			unmount(state, children[i]);
+		}
+	}
+
+	if (isRoot(vnode)) {
+		state.pendingUnmountRootId = state.currentRootId;
+	}
+	else if (!shouldFilter(state.filter, vnode)) {
+		let id = getVNodeId(vnode);
+		state.pendingUnmountIds.push(id);
+	}
+	// }
+
 	console.log("unmount", getDisplayName(vnode), getVNodeId(vnode))
-	if (hasVNodeId(vnode) && isRoot) {
-		state.pending.push([
-			TREE_OPERATION_REMOVE,
-			1, // Remove 1 item
-			getVNodeId(vnode)
-		]);
-	}
-	else {
-		let children = vnode._children || [];
-		for (let i = 0; i < children.length; i++) {
-			if (children[i]!==null) {
-				unmount(state, children[i], false);
-			}
-		}
 
-		if (!shouldFilter(state.filter, vnode)) {
-			let id = getVNodeId(vnode);
-			state.pendingUnmountIds.push(id);
-		}
-	}
+	// Root must be last after all children are unmounted
+	// let isRoot = vnode._parent==null;
+	// if (isRoot) {
+	// 	state.pendingUnmountRootId = getVNodeId(vnode);
+	// }
 
+	clearVNode(vnode);
+}
+
+/**
+ * Extracted unmount logic, because this will be called by
+ * `handleCommitFiberUnmount` directly during rendering. For that reason
+ * it should be as lightweight as possible to not taint profiling timings too
+ * much.
+ * @param {import('../internal').AdapterState} state
+ * @param {import('../internal').VNode} vnode
+ */
+export function recordUnmount(state, vnode) {
+	if (hasVNodeId(vnode)) {
+		state.pendingUnmountIds.push(getVNodeId(vnode));
+	}
 	clearVNode(vnode);
 }
 
 /**
  * @param {import('../internal').AdapterState} state
  * @param {import('../internal').VNode} vnode
- * @param {boolean} isRoot Mark a root as they need to be mounted differently
- * @param {number} [parentId]
+ * @param {import('../internal').VNode} parent
  */
-export function mount(state, vnode, isRoot, parentId) {
-	let id;
-	let ancestor = getAncestorComponent(vnode);
-	let owner = ancestor!=null ? getVNodeId(ancestor) : 0;
-
-	if (isRoot || !shouldFilter(state.filter, vnode)) {
-		id = getVNodeId(vnode);
-		console.log("mount", getDisplayName(vnode), id, "owner", owner)
-
-		// FIXME: Add proper root detection
-		if (isRoot && id < 10) {
-			state.pending.push(
-				TREE_OPERATION_ADD,
-				id,
-				ElementTypeRoot,
-				1, // Flag to signal that the vnode supports profiling
-				owner // We have no special owner meta data for roots
-			);
-		}
-		else {
-			state.pending.push(
-				TREE_OPERATION_ADD,
-				id,
-				getVNodeType(vnode),
-				parentId || 0,
-				owner,
-				getStringId(getDisplayName(vnode)),
-				vnode.key ? getStringId(vnode.key + '') : 0
-			);
-		}
+export function mount(state, vnode, parent) {
+	if (!shouldFilter(state.filter, vnode)) {
+		recordMount(state, vnode, parent);
 	}
 
 	const children = vnode._children || [];
 	for (let i = 0; i < children.length; i++) {
 		if (children[i]!==null) {
-			mount(state, children[i], false, !isRoot && shouldFilter(state.filter, vnode) ? parentId : id);
+			mount(state, children[i], vnode);
 		}
+	}
+}
+
+/**
+ * @param {import('../internal').AdapterState} state
+ * @param {import('../internal').VNode} vnode
+ * @param {import('../internal').VNode} parent
+ */
+export function recordMount(state, vnode, parent) {
+	let id = getVNodeId(vnode);
+	if (isRoot(vnode)) {
+		state.pending.push(
+			TREE_OPERATION_ADD,
+			id,
+			ElementTypeRoot,
+			1,
+			1
+		);
+	}
+	else {
+		let ancestor = getAncestorComponent(state, vnode);
+		state.pending.push(
+			TREE_OPERATION_ADD,
+			id,
+			getVNodeType(vnode),
+			ancestor!=null ? getVNodeId(ancestor) : 0,
+			ancestor!=null && !isRoot(ancestor) ? getVNodeId(ancestor) : 0,
+			getStringId(getDisplayName(vnode)),
+			vnode.key ? getStringId(vnode.key + '') : 0
+		);
 	}
 }
 
@@ -212,6 +232,7 @@ export function flushPendingEvents(hook, state) {
 			// TREE_OPERATION_REMOVE + removed id length
 			? 2 + state.pendingUnmountIds.length
 			: 0) +
+		(state.pendingUnmountRootId===null ? 0 : 1) +
 		state.pending.length
 	);
 
@@ -236,6 +257,11 @@ export function flushPendingEvents(hook, state) {
 			ops[i + j] = state.pendingUnmountIds[j];
 		}
 		i += state.pendingUnmountIds.length;
+
+		if (state.pendingUnmountRootId!==null) {
+			ops[i] = state.pendingUnmountRootId;
+			i++;
+		}
 	}
 
 	// Finally add all pending operations

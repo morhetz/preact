@@ -54,7 +54,7 @@ class DevtoolsWarning extends Component {
 	}
 }
 
-class App extends Component {
+class AppF extends Component {
 	render({ url }) {
 		return (
 			<div class="app">
@@ -113,18 +113,18 @@ class App extends Component {
 	}
 }
 
-function Foo() {
-	return <Bob />;
-}
+// function Foo() {
+// 	return <Bob />;
+// }
 
-function Bar() {
-	return <Bob />
-}
+// function Bar() {
+// 	return <Bob />
+// }
 
-let i = 0;
-function Bob() {
-	return <div>bob {++i}</div>
-}
+// let i = 0;
+// function Bob() {
+// 	return <div>bob {++i}</div>
+// }
 
 function EmptyFragment() {
 	return <Fragment />;
@@ -138,25 +138,33 @@ installLogger(
 	String(localStorage.CONSOLE)==='true' || location.href.match(/console/)
 );
 
-function App3() {
-	return <h1>Hello World</h1>;
+// function App3() {
+// 	return <h1>Hello World</h1>;
+// }
+
+// function FakeRouter(props) {
+// 	return props.active ? props.children[0] : props.children[1];
+// }
+
+// function App2() {
+// 	let [v, update] = useState(true);
+// 	useEffect(() => setTimeout(() => {
+// 		console.log("update")
+// 		update(false)}, 4000), []);
+
+//   return (
+// 			<FakeRouter active={v}>
+// 				<Foo/>
+// 				<Bar />
+// 			</FakeRouter>
+//   );
+// }
+
+function Foo() {
+	return 'foo';
 }
 
-function FakeRouter(props) {
-	return props.active ? props.children[0] : props.children[1];
+function App() {
+	return <h1><Foo /></h1>;
 }
-
-function App2() {
-	let [v, update] = useState(true);
-	useEffect(() => setTimeout(() => {
-		console.log("update")
-		update(false)}, 4000), []);
-
-  return (
-			<FakeRouter active={v}>
-				<Foo/>
-				<Bar />
-			</FakeRouter>
-  );
-}
-render(<App />, document.body);
+render(<AppF />, document.body);

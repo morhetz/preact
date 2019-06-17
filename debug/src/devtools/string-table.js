@@ -15,6 +15,7 @@ export function getStringId(input) {
 		stringTable = new Map();
 	}
 
+	console.log("add", input)
 	if (!stringTable.has(input)) {
 		stringTable.set(input, stringTable.size + 1);
 
