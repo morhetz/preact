@@ -62,6 +62,10 @@ export function update(state, vnode, parent) {
 	}
 	else {
 		let children = vnode._children || [];
+		console.log(
+			children.map(x => x!=null ? typeof x.type=='function' ? x.type.name : (x.type || x.text) : null),
+			(getVNode(getVNodeId(vnode))._children ||[]).map(x => x!=null ? typeof x.type=='function' ? x.type.name : (x.type || x.text) : null)
+		)
 		for (let i = 0; i < children.length; i++) {
 			if (children[i]!==null && update(state, children[i], shouldFilter(state.filter, vnode) ? parent : vnode)) {
 				shouldReset = true;
@@ -70,13 +74,17 @@ export function update(state, vnode, parent) {
 	}
 
 	if (shouldReset) {
+		console.log("should reset")
 		if (include) {
+			console.log("really reset")
 			resetChildren(state, vnode);
 			return false;
 		}
 
 		return true;
 	}
+
+	console.log("should not reset")
 
 	return false;
 }
@@ -87,20 +95,22 @@ export function update(state, vnode, parent) {
  * @param {import('../internal').VNode} vnode
  */
 export function resetChildren(state, vnode) {
-	// TODO: Infinite loop here
-	return;
+	if (!vnode._children) return;
+
+	console.log("RESTE")
 
 	/** @type {number[]} */
 	let next = [];
 
-	let stack = vnode._children.slice() || [];
+	let stack = vnode._children.slice();
+
 	let child;
 	while ((child = stack.pop())!=null) {
 		if (!shouldFilter(state.filter, child)) {
 			next.push(getVNodeId(child));
 		}
-		else if (vnode._children) {
-			stack.push(...vnode._children.slice());
+		else if (child._children) {
+			stack.push(...child._children);
 		}
 	}
 
@@ -112,9 +122,19 @@ export function resetChildren(state, vnode) {
 		next.length
 	);
 
+	console.log("REORDER")
 	for (let i = 0; i < next.length; i++) {
 		state.pending.push(next[i]);
 	}
+}
+
+/**
+ * Get all children of a vnode but walk over filtered children.
+ * @param {import('../internal').VNode} vnode The vnode whose children to search
+ * @returns {Array<import('../internal').VNode>}
+ */
+export function filteredChildren(vnode) {
+	// let stack =
 }
 
 /**
@@ -216,6 +236,7 @@ export function recordMount(state, vnode, parent) {
  * @param {import('../internal').AdapterState} state
  */
 export function flushPendingEvents(hook, state) {
+	console.log(state.pending, state.pendingUnmountIds, state.pendingUnmountRootId)
 	if (state.pending.length==0 && state.pendingUnmountIds.length==0) return;
 
 	// TODO: Profiling
@@ -265,6 +286,7 @@ export function flushPendingEvents(hook, state) {
 	// Finally add all pending operations
 	ops.set(state.pending, i);
 
+	console.log("emit", ops)
 	hook.emit('operations', ops);
 
 	state.pending = [];

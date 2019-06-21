@@ -162,25 +162,34 @@ installLogger(
 
 
 function Foo() {
-	return 'foo';
-}
-
-function Baz() {
-	return <div>baz</div>;
+  return <Bob />;
 }
 
 function Bar() {
-	return <Baz />;
+  return <Bob />;
+}
+
+let i = 0;
+function Bob() {
+  return <div>bob {++i}</div>;
+}
+
+function FakeRouter(props) {
+  return props.active ? props.children[0] : props.children[1];
 }
 
 function App() {
-	let [v, setter] = useState(true);
-	let update = () => setter(!v);
-	return (
-		<div>
-			<button onClick={update}>toggle</button>
-			{v ? <Foo /> : <Bar />}
-		</div>
-	);
+  let [v, setValue] = useState(true);
+  let update = () => setValue(!v);
+  // useEffect(() => {
+  //   setTimeout(update, 4000);
+  // });
+
+  return (
+    <FakeRouter active={v}>
+      <Foo />
+      <Bar />
+    </FakeRouter>
+  );
 }
-render(<App />, document.body);
+render(<AppF />, document.body);
