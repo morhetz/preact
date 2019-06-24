@@ -1,4 +1,4 @@
-import { getVNodeId, getVNode, clearVNode, hasVNodeId } from './cache';
+import { getVNodeId, getVNode, clearVNode, hasVNodeId, getPreviousChildrenIds, addChildToParent } from './cache';
 import { TREE_OPERATION_ADD, ElementTypeRoot, TREE_OPERATION_REMOVE, TREE_OPERATION_REORDER_CHILDREN } from './constants';
 import { getVNodeType, getDisplayName, getAncestorComponent, getOwners } from './vnode';
 import { cleanForBridge } from './pretty';
@@ -26,7 +26,7 @@ export function onCommitFiberRoot(hook, state, vnode) {
 	}
 
 	if (hasVNodeId(vnode)) {
-		update(state, vnode, ancestor);
+		update(state, vnode, parentId);
 	}
 	else {
 		mount(state, vnode, null);
@@ -50,41 +50,43 @@ export function onCommitFiberUnmount(hook, state, vnode) {
 /**
  * @param {import('../internal').AdapterState} state
  * @param {import('../internal').VNode} vnode
- * @param {import('../internal').VNode} vnode
+ * @param {number} parentId
  * @returns {boolean}
  */
-export function update(state, vnode, parent) {
+export function update(state, vnode, parentId) {
 	let shouldReset = false;
 	let include = !shouldFilter(state.filter, vnode);
 	if (include && !hasVNodeId(vnode)) {
-		mount(state, vnode, parent);
+		mount(state, vnode, parentId);
 		shouldReset = true;
 	}
 	else {
 		let children = vnode._children || [];
-		console.log(
-			children.map(x => x!=null ? typeof x.type=='function' ? x.type.name : (x.type || x.text) : null),
-			(getVNode(getVNodeId(vnode))._children ||[]).map(x => x!=null ? typeof x.type=='function' ? x.type.name : (x.type || x.text) : null)
-		)
+		let prevChildren = getPreviousChildrenIds(vnode);
+
 		for (let i = 0; i < children.length; i++) {
-			if (children[i]!==null && update(state, children[i], shouldFilter(state.filter, vnode) ? parent : vnode)) {
-				shouldReset = true;
+			if (children[i]!==null) {
+				if (update(state, children[i], include ? getVNodeId(vnode) : parentId)) {
+					shouldReset = true;
+				}
+
+				if (include && !shouldReset && prevChildren[i]!=getVNodeId(children[i])) {
+					shouldReset = true;
+				}
 			}
 		}
 	}
 
 	if (shouldReset) {
-		console.log("should reset")
 		if (include) {
-			console.log("really reset")
-			resetChildren(state, vnode);
+			if (vnode._children!=null && vnode._children.length > 0) {
+				resetChildren(state, vnode);
+			}
 			return false;
 		}
 
 		return true;
 	}
-
-	console.log("should not reset")
 
 	return false;
 }
@@ -96,8 +98,6 @@ export function update(state, vnode, parent) {
  */
 export function resetChildren(state, vnode) {
 	if (!vnode._children) return;
-
-	console.log("RESTE")
 
 	/** @type {number[]} */
 	let next = [];
@@ -122,19 +122,9 @@ export function resetChildren(state, vnode) {
 		next.length
 	);
 
-	console.log("REORDER")
 	for (let i = 0; i < next.length; i++) {
 		state.pending.push(next[i]);
 	}
-}
-
-/**
- * Get all children of a vnode but walk over filtered children.
- * @param {import('../internal').VNode} vnode The vnode whose children to search
- * @returns {Array<import('../internal').VNode>}
- */
-export function filteredChildren(vnode) {
-	// let stack =
 }
 
 /**
@@ -185,17 +175,22 @@ export function recordUnmount(state, vnode) {
 /**
  * @param {import('../internal').AdapterState} state
  * @param {import('../internal').VNode} vnode
- * @param {import('../internal').VNode} parent
+ * @param {number} parentId
  */
-export function mount(state, vnode, parent) {
+export function mount(state, vnode, parentId) {
 	if (!shouldFilter(state.filter, vnode)) {
-		recordMount(state, vnode, parent);
+		let newId = getVNodeId(vnode);
+		addChildToParent(parentId, newId);
+		recordMount(state, vnode);
+
+		// Our current vnode is the next parent from now on
+		parentId = newId;
 	}
 
 	const children = vnode._children || [];
 	for (let i = 0; i < children.length; i++) {
 		if (children[i]!==null) {
-			mount(state, children[i], vnode);
+			mount(state, children[i], parentId);
 		}
 	}
 }
@@ -203,9 +198,8 @@ export function mount(state, vnode, parent) {
 /**
  * @param {import('../internal').AdapterState} state
  * @param {import('../internal').VNode} vnode
- * @param {import('../internal').VNode} parent
  */
-export function recordMount(state, vnode, parent) {
+export function recordMount(state, vnode) {
 	let id = getVNodeId(vnode);
 	if (isRoot(vnode)) {
 		state.pending.push(
@@ -236,7 +230,6 @@ export function recordMount(state, vnode, parent) {
  * @param {import('../internal').AdapterState} state
  */
 export function flushPendingEvents(hook, state) {
-	console.log(state.pending, state.pendingUnmountIds, state.pendingUnmountRootId)
 	if (state.pending.length==0 && state.pendingUnmountIds.length==0) return;
 
 	// TODO: Profiling
@@ -286,7 +279,6 @@ export function flushPendingEvents(hook, state) {
 	// Finally add all pending operations
 	ops.set(state.pending, i);
 
-	console.log("emit", ops)
 	hook.emit('operations', ops);
 
 	state.pending = [];
